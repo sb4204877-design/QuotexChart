@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QXChart Mobile</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0f172a;
+  color: #cbd5e1;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  touch-action: none;
+}
+#chart-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #0f172a;
+}
+canvas {
+  display: block;
+  position: absolute;
+}
+#main-canvas {
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+}
+#price-canvas {
+  right: 0;
+  top: 0;
+  width: 45px;
+  background: #0f172a;
+  border-left: 1px solid #334155;
+}
+#time-canvas {
+  bottom: 0;
+  left: 0;
+  height: 22px;
+  background: #0f172a;
+  border-top: 1px solid #334155;
+}
+#corner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 45px;
+  height: 22px;
+  background: #0f172a;
+  border-left: 1px solid #334155;
+  border-top: 1px solid #334155;
+}
+
+/* Loading Spinner - MOBILE COMPACT */
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1000;
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(51, 65, 85, 0.5);
+  border-top-color: #4dffcc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Menu Button - TOP LEFT CORNER (MOVED) */
+#menu-button {
+  position: absolute;
+  top: 8px;
+  left: 8px; /* Changed from right to left */
+  width: 36px;
+  height: 36px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+#menu-button:active {
+  transform: scale(0.95);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+/* Square Menu Icon - SMALLER */
+.square-menu-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+.square-menu-icon .line {
+  width: 14px;
+  height: 1.5px;
+  background: #cbd5e1;
+  border-radius: 1px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal Card - MOBILE BOTTOM SHEET STYLE */
+.modal-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-height: 70vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.modal-overlay.active .modal-card {
+  transform: translateY(0);
+}
+.modal-header {
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.close-btn:active {
+  background: rgba(51, 65, 85, 0.5);
+  color: #cbd5e1;
+}
+.modal-body {
+  padding: 12px;
+  overflow-y: auto;
+  max-height: calc(70vh - 50px);
+}
+
+/* Menu Items - MOBILE COMPACT */
+.menu-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+.menu-item:active {
+  background: rgba(30, 41, 59, 0.7);
+  transform: scale(0.98);
+}
+.menu-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.menu-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 6px;
+}
+.menu-text {
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+/* Settings Form - MOBILE */
+.settings-group {
+  margin-bottom: 14px;
+}
+.settings-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+.color-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  height: 36px;
+}
+
+/* Search Container - MOBILE */
+.search-container {
+  margin-bottom: 12px;
+  position: relative;
+}
+.search-input {
+  width: 100%;
+  padding: 10px 10px 10px 36px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  outline: none;
+  height: 40px;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  width: 18px;
+  height: 18px;
+}
+
+/* Timeframes Grid - MOBILE COMPACT */
+.timeframes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.timeframe-btn {
+  padding: 10px 4px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+.timeframe-btn:active {
+  transform: scale(0.95);
+}
+.timeframe-btn.active {
+  background: rgba(77, 255, 204, 0.25);
+  border-color: #4dffcc;
+  color: #4dffcc;
+}
+
+/* Price Line - MOBILE THINNER */
+.price-line {
+  position: absolute;
+  left: 0;
+  width: calc(100% - 45px);
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 3px,
+    currentColor 3px,
+    currentColor 6px
+  );
+  pointer-events: none;
+  z-index: 50;
+  display: block !important;
+}
+
+/* Last Price Label - MOBILE COMPACT */
+.last-price-label {
+  position: absolute;
+  right: 0px;
+  width: 45px;
+  transform: translateY(-50%);
+  color: white;
+  padding: 4px 2px;
+  border-radius: 3px 0 0 3px;
+  font-size: 10px;
+  font-weight: bold;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  white-space: nowrap;
+  z-index: 60;
+  display: block !important;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+.last-price-label .price {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 1px;
+  font-weight: bold;
+}
+.last-price-label .timer {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-size: 9px;
+  display: block;
+  font-weight: normal;
+}
+
+/* Indicator List - MOBILE */
+.indicator-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  background: rgba(30, 41, 59, 0.5);
+}
+.indicator-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.indicator-badge {
+  background: #4dffcc;
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.indicator-actions {
+  display: flex;
+  gap: 6px;
+}
+.indicator-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #334155;
+  color: #cbd5e1;
+  border: none;
+}
+.indicator-btn.settings { 
+  background: #4dffcc; 
+  color: #000; 
+}
+.indicator-btn.toggle.hidden { 
+  background: #ff0000; 
+}
+
+/* Symbols List - MOBILE */
+.symbols-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.symbols-list::-webkit-scrollbar {
+  width: 4px;
+}
+.symbols-list::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 4px;
+}
+.symbols-list::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+.symbol-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid transparent;
+}
+.symbol-item:active {
+  background: rgba(51, 65, 85, 0.7);
+  transform: scale(0.98);
+  border-color: #4dffcc;
+}
+.symbol-name {
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+.no-results {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* Top Bar Info - MOVED TO RIGHT SIDE */
+#top-bar-info {
+  position: absolute;
+  top: 8px;
+  right: 8px; /* Changed from left to right */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Align text to right */
+  gap: 2px;
+  z-index: 100;
+  pointer-events: none;
+}
+.top-symbol {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.2px;
+  text-align: right;
+}
+.top-timeframe {
+  font-size: 10px;
+  color: #94a3b8;
+  background: rgba(51, 65, 85, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div id="chart-container">
+<canvas id="main-canvas"></canvas>
+<canvas id="price-canvas"></canvas>
+<canvas id="time-canvas"></canvas>
+<div id="corner"></div>
+
+<!-- Top Bar Info - NOW ON RIGHT SIDE -->
+<div id="top-bar-info">
+  <span class="top-symbol" id="top-symbol">EUR/USD</span>
+  <span class="top-timeframe" id="top-timeframe">1m</span>
+</div>
+
+<div id="loading">
+<div class="spinner"></div>
+<div style="color: #94a3b8; font-size: 11px;">Loading...</div>
+</div>
+
+<!-- Menu Button - NOW ON TOP LEFT -->
+<div id="menu-button">
+<div class="square-menu-icon">
+<div class="line"></div>
+<div class="line"></div>
+<div class="line"></div>
+<div class="line"></div>
+</div>
+</div>
+
+<!-- Price Line -->
+<div class="price-line" id="price-line"></div>
+<!-- Last Price Label -->
+<div class="last-price-label" id="last-price-label">
+<span class="price">--</span>
+<span class="timer">--:--</span>
+</div>
+
+<!-- Menu Modal -->
+<div id="menu-modal" class="modal-overlay">
+<div class="modal-card">
+<div class="modal-header">
+<div class="modal-title">Menu</div>
+<button class="close-btn" id="menu-close">×</button>
+</div>
+<div class="modal-body">
+<div class="menu-item" data-action="symbols">
+<div class="menu-icon-wrapper">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2">
+<path d="M12 2L2 7l10 5 10-5-10-5z"/>
+<path d="M2 17l10 5 10-5"/>
+<path d="M2 12l10 5 10-5"/>
+</svg>
+</div>
+<span class="menu-text">Symbols</span>
+</div>
+<div class="menu-item" data-action="timeframes">
+<div class="menu-icon-wrapper">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2">
+<circle cx="12" cy="12" r="10"/>
+<polyline points="12,6 12,12 16,14"/>
+</svg>
+</div>
+<span class="menu-text">Timeframes</span>
+</div>
+<div class="menu-item" data-action="indicators">
+<div class="menu-icon-wrapper">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2">
+<polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+</svg>
+</div>
+<span class="menu-text">Indicators</span>
+</div>
+<div class="menu-item" data-action="settings">
+<div class="menu-icon-wrapper">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2">
+<circle cx="12" cy="12" r="3"/>
+<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg>
+</div>
+<span class="menu-text">Settings</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Indicators Modal -->
+<div id="indicators-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">Indicators</div>
+      <button class="close-btn" id="indicators-close">×</button>
+    </div>
+    <div class="modal-body" id="indicators-list">
+    </div>
+  </div>
+</div>
+
+<!-- Indicator Settings Panel -->
+<div id="indicator-settings-panel" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">MA Settings</div>
+      <button class="close-btn" id="settings-panel-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-group">
+        <label class="settings-label">Period</label>
+        <input type="range" min="5" max="100" value="20" class="color-input" id="ma-period" style="height: 24px;">
+        <div style="text-align: center; margin-top: 4px; color: #94a3b8; font-size: 11px;" id="ma-period-value">20</div>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">Color</label>
+        <input type="color" class="color-input" id="ma-color" value="#4dffcc">
+      </div>
+      <div style="margin-top: 16px; text-align: center;">
+        <button id="apply-ma-settings" class="timeframe-btn" style="width: 100%; padding: 10px; font-size: 12px;">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay">
+<div class="modal-card">
+<div class="modal-header">
+<div class="modal-title">Settings</div>
+<button class="close-btn" id="settings-close">×</button>
+</div>
+<div class="modal-body">
+<div class="settings-group">
+<label class="settings-label">Background</label>
+<input type="color" class="color-input" id="bg-color" value="#0f172a">
+</div>
+<div class="settings-group">
+<label class="settings-label">Bullish Color</label>
+<input type="color" class="color-input" id="up-color" value="#00C510">
+</div>
+<div class="settings-group">
+<label class="settings-label">Bearish Color</label>
+<input type="color" class="color-input" id="down-color" value="#ff0000">
+</div>
+</div>
+</div>
+</div>
+
+<!-- Timeframes Modal -->
+<div id="timeframes-modal" class="modal-overlay">
+<div class="modal-card">
+<div class="modal-header">
+<div class="modal-title">Timeframes</div>
+<button class="close-btn" id="timeframes-close">×</button>
+</div>
+<div class="modal-body">
+<div class="timeframes-grid" id="timeframes-grid">
+</div>
+</div>
+</div>
+</div>
+
+<!-- Symbols Modal with Search -->
+<div id="symbols-modal" class="modal-overlay">
+<div class="modal-card">
+<div class="modal-header">
+<div class="modal-title">Symbols</div>
+<button class="close-btn" id="symbols-close">×</button>
+</div>
+<div class="modal-body">
+<div class="search-container">
+<svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="11" cy="11" r="8"/>
+<path d="M21 21l-4.35-4.35"/>
+</svg>
+<input type="text" class="search-input" id="symbol-search" placeholder="Search...">
+</div>
+<div class="symbols-list" id="symbols-list">
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+// ======================
+// Global Variables
+// ======================
+let currentAsset = "EUR/USD";
+let currentTimeframe = "1m";
+let timeframeSeconds = 60;
+let serverTimeOffset = 0;
+let allCategories = null;
+let countdownTimer = null;
+let lastCandleTimeGlobal = 0;
+let needsResetView = true;
+
+// Mobile-optimized config
+const CONFIG = {
+candleCount: 200, // Reduced for mobile performance
+defaultBarSpacing: 6,
+minBarSpacing: 1.5,
+maxBarSpacing: 30,
+priceDecimals: 5,
+colors: {
+bg: '#0f172a',
+grid: '#334155',
+crosshair: '#94a3b8',
+up: '#00C510',
+down: '#ff0000',
+wick: '#64748b',
+text: '#94a3b8',
+textBright: '#cbd5e1',
+ma: '#4dffcc'
+},
+maPeriod: 20,
+maColor: '#4dffcc',
+maEnabled: true
+};
+
+// Mobile font sizes
+const FONTS = {
+price: '10px sans-serif',
+time: '9px sans-serif',
+label: '9px monospace'
+};
+
+// ======================
+// Fake Data Generator
+// ======================
+class FakeDataGenerator {
+  constructor() {
+    this.lastPrice = 1.08500;
+    this.candles = [];
+    this.generateInitialCandles();
+  }
+  
+  generateInitialCandles() {
+    const now = Math.floor(Date.now() / 1000);
+    const count = CONFIG.candleCount;
+    
+    for (let i = count; i >= 0; i--) {
+      const time = now - (i * timeframeSeconds);
+      this.addCandleAtTime(time, i === 0);
+    }
+  }
+  
+  addCandleAtTime(time, isLast = false) {
+    const volatility = 0.0002;
+    const trend = (Math.random() - 0.5) * 0.0001;
+    
+    const open = this.lastPrice;
+    const change = (Math.random() - 0.5) * volatility + trend;
+    const close = open + change;
+    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+    
+    const candle = {
+      time: time,
+      open: open,
+      high: high,
+      low: low,
+      close: close
+    };
+    
+    this.candles.push(candle);
+    this.lastPrice = close;
+    
+    return candle;
+  }
+  
+  updateLastCandle() {
+    const lastCandle = this.candles[this.candles.length - 1];
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Check if we need a new candle
+    if (now >= lastCandle.time + timeframeSeconds) {
+      // Finalize last candle
+      const newCandle = this.addCandleAtTime(lastCandle.time + timeframeSeconds, true);
+      return { type: 'new', candle: newCandle };
+    } else {
+      // Update current candle
+      const volatility = 0.0001;
+      lastCandle.close = lastCandle.close + (Math.random() - 0.5) * volatility;
+      lastCandle.high = Math.max(lastCandle.high, lastCandle.close);
+      lastCandle.low = Math.min(lastCandle.low, lastCandle.close);
+      this.lastPrice = lastCandle.close;
+      return { type: 'update', candle: lastCandle };
+    }
+  }
+  
+  getCandles() {
+    return this.candles;
+  }
+}
+
+// ======================
+// TimeScale Class
+// ======================
+class TimeScale {
+constructor() {
+this.barSpacing = CONFIG.defaultBarSpacing;
+this.offset = 0;
+this.data = [];
+}
+setData(data) {
+this.data = data;
+}
+indexToX(index, width) {
+return this.offset + (index * this.barSpacing);
+}
+xToIndex(x, width) {
+return (x - this.offset) / this.barSpacing;
+}
+getVisibleRange(width) {
+const startIdx = Math.floor(this.xToIndex(0, width));
+const endIdx = Math.ceil(this.xToIndex(width, width));
+return {
+start: Math.max(0, startIdx),
+end: Math.min(this.data.length - 1, endIdx)
+};
+}
+scroll(delta, width) {
+this.offset += delta;
+}
+zoom(factor, centerX, width) {
+const oldSpacing = this.barSpacing;
+const newSpacing = Math.max(CONFIG.minBarSpacing,
+Math.min(CONFIG.maxBarSpacing, oldSpacing * factor));
+const centerIdx = this.xToIndex(centerX, width);
+this.barSpacing = newSpacing;
+const newCenterX = this.indexToX(centerIdx, width);
+this.offset += (centerX - newCenterX);
+}
+}
+
+// ======================
+// PriceScale Class
+// ======================
+class PriceScale {
+constructor() {
+this.min = 0;
+this.max = 0;
+this.margin = 0.05;
+}
+calculate(candles, startIdx, endIdx) {
+let min = Infinity;
+let max = -Infinity;
+startIdx = Math.max(0, startIdx);
+endIdx = Math.min(candles.length - 1, endIdx);
+for (let i = startIdx; i <= endIdx; i++) {
+const c = candles[i];
+if (c) {
+min = Math.min(min, c.low);
+max = Math.max(max, c.high);
+}
+}
+if (min === Infinity) {
+min = 0;
+max = 100;
+}
+const range = max - min;
+const safeRange = range < 0.0001 ? 0.0001 : range;
+this.min = min - (safeRange * this.margin);
+this.max = max + (safeRange * this.margin);
+}
+priceToY(price, height) {
+const range = this.max - this.min;
+const ratio = (price - this.min) / range;
+return height - (ratio * height);
+}
+yToPrice(y, height) {
+const range = this.max - this.min;
+const ratio = (height - y) / height;
+return this.min + (ratio * range);
+}
+}
+
+// ======================
+// MainRenderer Class
+// ======================
+class MainRenderer {
+constructor(canvas) {
+this.canvas = canvas;
+this.ctx = canvas.getContext('2d');
+this.dpr = Math.min(window.devicePixelRatio || 1, 2); // Limit DPR for mobile
+}
+resize(width, height) {
+this.width = width;
+this.height = height;
+this.canvas.width = Math.floor(width * this.dpr);
+this.canvas.height = Math.floor(height * this.dpr);
+this.canvas.style.width = `${width}px`;
+this.canvas.style.height = `${height}px`;
+this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+this.ctx.scale(this.dpr, this.dpr);
+}
+clear() {
+this.ctx.fillStyle = CONFIG.colors.bg;
+this.ctx.fillRect(0, 0, this.width, this.height);
+}
+drawGrid(priceScale, timeScale, candles) {
+const { ctx, width, height } = this;
+ctx.strokeStyle = CONFIG.colors.grid;
+ctx.lineWidth = 0.5; // Thinner for mobile
+const priceRange = priceScale.max - priceScale.min;
+const step = priceRange / 5; // Fewer grid lines
+for (let i = 0; i <= 5; i++) {
+const price = priceScale.min + (step * i);
+const y = priceScale.priceToY(price, height);
+ctx.beginPath();
+ctx.moveTo(0, y);
+ctx.lineTo(width, y);
+ctx.stroke();
+}
+const visible = timeScale.getVisibleRange(width);
+const timeStep = Math.max(1, Math.floor((visible.end - visible.start) / 4));
+for (let i = visible.start; i <= visible.end; i += timeStep) {
+const x = timeScale.indexToX(i, width);
+if (x < 0 || x > width) continue;
+ctx.beginPath();
+ctx.moveTo(x, 0);
+ctx.lineTo(x, height);
+ctx.stroke();
+}
+}
+drawCandles(candles, timeScale, priceScale) {
+const { ctx, width, height } = this;
+const visible = timeScale.getVisibleRange(width);
+const candleWidth = Math.max(1, timeScale.barSpacing * 0.6); // Thinner candles
+for (let i = visible.start; i <= visible.end; i++) {
+const c = candles[i];
+if (!c) continue;
+const x = timeScale.indexToX(i, width);
+if (x < -candleWidth || x > width + candleWidth) continue;
+const yOpen = priceScale.priceToY(c.open, height);
+const yHigh = priceScale.priceToY(c.high, height);
+const yLow = priceScale.priceToY(c.low, height);
+const yClose = priceScale.priceToY(c.close, height);
+const isUp = c.close >= c.open;
+const color = isUp ? CONFIG.colors.up : CONFIG.colors.down;
+ctx.strokeStyle = color;
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(x, yHigh);
+ctx.lineTo(x, yLow);
+ctx.stroke();
+ctx.fillStyle = color;
+const bodyTop = Math.min(yOpen, yClose);
+const bodyHeight = Math.max(1, Math.abs(yClose - yOpen));
+ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight);
+}
+}
+drawMovingAverage(ma, timeScale, priceScale, candles) {
+if (!CONFIG.maEnabled) return;
+const { ctx, width, height } = this;
+const visible = timeScale.getVisibleRange(width);
+ctx.strokeStyle = CONFIG.maColor;
+ctx.lineWidth = 1;
+ctx.setLineDash([]);
+ctx.beginPath();
+let started = false;
+for (let i = visible.start; i <= visible.end; i++) {
+if (i >= ma.length || ma[i] === null) continue;
+const x = timeScale.indexToX(i, width);
+const y = priceScale.priceToY(ma[i], height);
+if (!started) {
+ctx.moveTo(x, y);
+started = true;
+} else {
+ctx.lineTo(x, y);
+}
+}
+ctx.stroke();
+}
+drawCrosshair(x, y) {
+const { ctx, width, height } = this;
+ctx.strokeStyle = CONFIG.colors.crosshair;
+ctx.lineWidth = 0.5;
+ctx.setLineDash([3, 3]);
+ctx.beginPath();
+ctx.moveTo(x, 0);
+ctx.lineTo(x, height);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(0, y);
+ctx.lineTo(width, y);
+ctx.stroke();
+ctx.setLineDash([]);
+}
+}
+
+// ======================
+// PriceAxisRenderer Class
+// ======================
+class PriceAxisRenderer {
+constructor(canvas) {
+this.canvas = canvas;
+this.ctx = canvas.getContext('2d');
+this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+}
+resize(width, height) {
+this.canvas.width = Math.floor(width * this.dpr);
+this.canvas.height = Math.floor(height * this.dpr);
+this.canvas.style.width = `${width}px`;
+this.canvas.style.height = `${height}px`;
+this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+this.ctx.scale(this.dpr, this.dpr);
+}
+render(priceScale, height) {
+const { ctx } = this;
+const width = this.canvas.width / this.dpr;
+ctx.clearRect(0, 0, width, height);
+ctx.fillStyle = CONFIG.colors.bg;
+ctx.fillRect(0, 0, width, height);
+ctx.fillStyle = CONFIG.colors.text;
+ctx.font = FONTS.price;
+ctx.textAlign = 'left';
+ctx.textBaseline = 'middle';
+const priceRange = priceScale.max - priceScale.min;
+const step = priceRange / 5;
+for (let i = 0; i <= 5; i++) {
+const price = priceScale.min + (step * i);
+const y = priceScale.priceToY(price, height);
+let text;
+if (price >= 1000) {
+text = price.toFixed(0);
+} else {
+text = price.toFixed(CONFIG.priceDecimals);
+}
+// Truncate for mobile narrow axis
+if (text.length > 7) {
+text = text.substring(0, 7);
+}
+ctx.fillText(text, 4, y);
+ctx.fillStyle = CONFIG.colors.grid;
+ctx.fillRect(0, y - 0.5, 3, 1);
+ctx.fillStyle = CONFIG.colors.text;
+}
+}
+}
+
+// ======================
+// TimeAxisRenderer Class
+// ======================
+class TimeAxisRenderer {
+constructor(canvas) {
+this.canvas = canvas;
+this.ctx = canvas.getContext('2d');
+this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+}
+resize(width, height) {
+this.canvas.width = Math.floor(width * this.dpr);
+this.canvas.height = Math.floor(height * this.dpr);
+this.canvas.style.width = `${width}px`;
+this.canvas.style.height = `${height}px`;
+this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+this.ctx.scale(this.dpr, this.dpr);
+}
+render(timeScale, candles, width) {
+const { ctx } = this;
+const height = this.canvas.height / this.dpr;
+ctx.clearRect(0, 0, width, height);
+ctx.fillStyle = CONFIG.colors.bg;
+ctx.fillRect(0, 0, width, height);
+ctx.fillStyle = CONFIG.colors.text;
+ctx.font = FONTS.time;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'top';
+const visible = timeScale.getVisibleRange(width);
+const timeStep = Math.max(1, Math.floor((visible.end - visible.start) / 4));
+for (let i = visible.start; i <= visible.end; i += timeStep) {
+const x = timeScale.indexToX(i, width);
+if (x < 20 || x > width - 20) continue;
+const c = candles[i];
+if (!c) continue;
+const date = new Date(c.time * 1000);
+const text = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+ctx.fillText(text, x, 4);
+ctx.fillStyle = CONFIG.colors.grid;
+ctx.fillRect(x - 0.5, 0, 1, 3);
+ctx.fillStyle = CONFIG.colors.text;
+}
+}
+}
+
+// ======================
+// ModalManager Class
+// ======================
+class ModalManager {
+constructor() {
+this.modals = {
+menu: document.getElementById('menu-modal'),
+indicators: document.getElementById('indicators-modal'),
+settings: document.getElementById('settings-modal'),
+timeframes: document.getElementById('timeframes-modal'),
+symbols: document.getElementById('symbols-modal')
+};
+this.initModals();
+this.initTimeframes();
+this.initSettings();
+this.initIndicators();
+this.initSymbols();
+}
+initModals() {
+const menuBtn = document.getElementById('menu-button');
+menuBtn.addEventListener('click', () => {
+this.showModal('menu');
+});
+// Touch support for mobile
+menuBtn.addEventListener('touchstart', (e) => {
+e.preventDefault();
+this.showModal('menu');
+});
+
+Object.keys(this.modals).forEach(modalName => {
+const closeBtn = document.getElementById(`${modalName}-close`);
+if (closeBtn) {
+closeBtn.addEventListener('click', () => {
+this.hideModal(modalName);
+});
+}
+});
+const menuItems = document.querySelectorAll('.menu-item');
+menuItems.forEach(item => {
+item.addEventListener('click', (e) => {
+const action = e.currentTarget.dataset.action;
+this.hideModal('menu');
+this.showModal(action);
+});
+});
+Object.values(this.modals).forEach(modal => {
+modal.addEventListener('click', (e) => {
+if (e.target === modal) {
+this.hideAllModals();
+}
+});
+});
+}
+initTimeframes() {
+const TIMEFRAMES = {
+"1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600
+};
+const grid = document.getElementById('timeframes-grid');
+Object.keys(TIMEFRAMES).forEach(tf => {
+const btn = document.createElement('div');
+btn.className = 'timeframe-btn';
+btn.textContent = tf;
+if (tf === currentTimeframe) btn.classList.add('active');
+btn.addEventListener('click', () => {
+document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+selectTimeframe(tf);
+});
+grid.appendChild(btn);
+});
+}
+initSettings() {
+const bgColorInput = document.getElementById('bg-color');
+const upColorInput = document.getElementById('up-color');
+const downColorInput = document.getElementById('down-color');
+bgColorInput.addEventListener('change', (e) => {
+CONFIG.colors.bg = e.target.value;
+});
+upColorInput.addEventListener('change', (e) => {
+CONFIG.colors.up = e.target.value;
+});
+downColorInput.addEventListener('change', (e) => {
+CONFIG.colors.down = e.target.value;
+});
+}
+initIndicators() {
+const indicatorsList = document.getElementById('indicators-list');
+const settingsPanel = document.getElementById('indicator-settings-panel');
+const maPeriodInput = document.getElementById('ma-period');
+const maPeriodValue = document.getElementById('ma-period-value');
+const maColorInput = document.getElementById('ma-color');
+const applyBtn = document.getElementById('apply-ma-settings');
+
+function renderIndicatorList() {
+indicatorsList.innerHTML = `
+<div class="indicator-item">
+<div class="indicator-info">
+<div class="indicator-badge">MA</div>
+<span style="font-size: 12px;">Moving Average</span>
+</div>
+<div class="indicator-actions">
+<button class="indicator-btn settings" title="Settings">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="3"/>
+<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg>
+</button>
+<button class="indicator-btn toggle ${CONFIG.maEnabled ? '' : 'hidden'}" title="Toggle">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+<circle cx="12" cy="12" r="3"/>
+</svg>
+</button>
+</div>
+</div>
+`;
+
+indicatorsList.querySelector('.settings').onclick = () => {
+settingsPanel.classList.add('active');
+};
+
+indicatorsList.querySelector('.toggle').onclick = (e) => {
+CONFIG.maEnabled = !CONFIG.maEnabled;
+e.currentTarget.classList.toggle('hidden', !CONFIG.maEnabled);
+};
+}
+
+document.getElementById('settings-panel-close').onclick = () => {
+settingsPanel.classList.remove('active');
+};
+
+applyBtn.onclick = () => {
+CONFIG.maPeriod = parseInt(maPeriodInput.value);
+CONFIG.maColor = maColorInput.value;
+chart.calculateMA();
+settingsPanel.classList.remove('active');
+};
+
+maPeriodInput.oninput = (e) => {
+maPeriodValue.textContent = e.target.value;
+};
+
+renderIndicatorList();
+}
+initSymbols() {
+const searchInput = document.getElementById('symbol-search');
+const symbolsList = document.getElementById('symbols-list');
+const self = this;
+
+// Fake symbols for demo
+const fakeSymbols = [
+  "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", 
+  "USD/CAD", "USD/CHF", "NZD/USD", "EUR/GBP",
+  "EUR/JPY", "GBP/JPY", "AUD/JPY", "EUR/AUD"
+];
+
+function renderSymbols(filter = '') {
+const filtered = fakeSymbols.filter(s => 
+s.toLowerCase().includes(filter.toLowerCase())
+);
+
+if (filtered.length === 0) {
+symbolsList.innerHTML = '<div class="no-results">No symbols found</div>';
+return;
+}
+
+symbolsList.innerHTML = '';
+filtered.forEach((s, index) => {
+const item = document.createElement('div');
+item.className = 'symbol-item';
+item.dataset.symbol = s;
+item.innerHTML = `
+<span class="symbol-name">${s}</span>
+`;
+symbolsList.appendChild(item);
+});
+
+symbolsList.querySelectorAll('.symbol-item').forEach(item => {
+item.addEventListener('click', () => {
+const symbol = item.dataset.symbol;
+selectAsset(symbol);
+self.hideModal('symbols');
+});
+});
+}
+
+searchInput.addEventListener('input', (e) => {
+renderSymbols(e.target.value);
+});
+
+renderSymbols();
+}
+showModal(modalName) {
+if (this.modals[modalName]) {
+this.modals[modalName].classList.add('active');
+}
+}
+hideModal(modalName) {
+if (this.modals[modalName]) {
+this.modals[modalName].classList.remove('active');
+}
+}
+hideAllModals() {
+Object.values(this.modals).forEach(modal => {
+modal.classList.remove('active');
+});
+}
+}
+
+// ======================
+// UltraChart Class
+// ======================
+class UltraChart {
+constructor() {
+this.container = document.getElementById('chart-container');
+this.mainCanvas = document.getElementById('main-canvas');
+this.priceCanvas = document.getElementById('price-canvas');
+this.timeCanvas = document.getElementById('time-canvas');
+this.mainRenderer = new MainRenderer(this.mainCanvas);
+this.priceRenderer = new PriceAxisRenderer(this.priceCanvas);
+this.timeRenderer = new TimeAxisRenderer(this.timeCanvas);
+this.timeScale = new TimeScale();
+this.priceScale = new PriceScale();
+this.candles = [];
+this.ma = [];
+this.crosshair = { x: -1, y: -1, active: false };
+this.isDragging = false;
+this.lastMouseX = 0;
+this.chartWidth = 0;
+this.chartHeight = 0;
+this.renderPending = false;
+this.priceScaleDirty = true;
+this.autoScroll = true;
+this.fakeGenerator = new FakeDataGenerator();
+this.init();
+}
+init() {
+this.candles = this.fakeGenerator.getCandles();
+this.ma = [];
+this.timeScale.setData(this.candles);
+this.calculateDimensions();
+this.setupEvents();
+this.calculateMA();
+this.stickToRight();
+this.requestRender();
+setTimeout(() => {
+document.getElementById('loading').style.display = 'none';
+}, 300);
+// Start fake data updates
+this.startFakeUpdates();
+}
+startFakeUpdates() {
+setInterval(() => {
+const result = this.fakeGenerator.updateLastCandle();
+if (result.type === 'new') {
+this.candles.push(result.candle);
+if (this.candles.length > CONFIG.candleCount * 1.5) {
+this.candles.shift();
+}
+this.calculateMA();
+} else {
+// Update last candle in array
+this.candles[this.candles.length - 1] = result.candle;
+}
+this.timeScale.setData(this.candles);
+if (this.autoScroll) {
+this.stickToRight();
+}
+this.priceScaleDirty = true;
+this.requestRender();
+}, 1000); // Update every second
+}
+calculateDimensions() {
+const rect = this.container.getBoundingClientRect();
+const priceAxisW = 45; // Narrower for mobile
+const timeAxisH = 22; // Shorter for mobile
+this.chartWidth = rect.width - priceAxisW;
+this.chartHeight = rect.height - timeAxisH;
+this.mainRenderer.resize(this.chartWidth, this.chartHeight);
+this.priceRenderer.resize(priceAxisW, this.chartHeight);
+this.timeRenderer.resize(this.chartWidth, timeAxisH);
+this.priceScaleDirty = true;
+this.requestRender();
+}
+setupEvents() {
+const canvas = this.mainCanvas;
+// Mouse events
+canvas.addEventListener('mousedown', (e) => {
+this.isDragging = true;
+this.autoScroll = false;
+this.lastMouseX = e.clientX;
+canvas.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', (e) => {
+const rect = canvas.getBoundingClientRect();
+const newX = e.clientX - rect.left;
+const newY = e.clientY - rect.top;
+this.crosshair.x = newX;
+this.crosshair.y = newY;
+this.crosshair.active = true;
+if (this.isDragging) {
+const delta = e.clientX - this.lastMouseX;
+this.timeScale.scroll(delta, this.chartWidth);
+this.lastMouseX = e.clientX;
+this.priceScaleDirty = true;
+this.requestRender();
+}
+});
+window.addEventListener('mouseup', () => {
+this.isDragging = false;
+canvas.style.cursor = 'crosshair';
+});
+canvas.addEventListener('mouseleave', () => {
+this.crosshair.active = false;
+this.requestRender();
+});
+canvas.addEventListener('mouseenter', () => {
+this.crosshair.active = true;
+this.requestRender();
+});
+canvas.addEventListener('wheel', (e) => {
+e.preventDefault();
+const factor = e.deltaY > 0 ? 0.9 : 1.1;
+this.timeScale.zoom(factor, this.crosshair.x, this.chartWidth);
+this.priceScaleDirty = true;
+this.requestRender();
+});
+// Touch events for mobile
+let touchStartX = 0;
+let touchStartY = 0;
+canvas.addEventListener('touchstart', (e) => {
+if (e.touches.length === 1) {
+this.isDragging = true;
+this.autoScroll = false;
+touchStartX = e.touches[0].clientX;
+touchStartY = e.touches[0].clientY;
+this.lastMouseX = touchStartX;
+}
+}, {passive: false});
+canvas.addEventListener('touchmove', (e) => {
+e.preventDefault();
+if (e.touches.length === 1) {
+const touch = e.touches[0];
+const rect = canvas.getBoundingClientRect();
+this.crosshair.x = touch.clientX - rect.left;
+this.crosshair.y = touch.clientY - rect.top;
+this.crosshair.active = true;
+if (this.isDragging) {
+const delta = touch.clientX - this.lastMouseX;
+this.timeScale.scroll(delta, this.chartWidth);
+this.lastMouseX = touch.clientX;
+this.priceScaleDirty = true;
+this.requestRender();
+}
+}
+}, {passive: false});
+canvas.addEventListener('touchend', () => {
+this.isDragging = false;
+});
+// Pinch zoom
+let initialPinchDistance = null;
+canvas.addEventListener('touchstart', (e) => {
+if (e.touches.length === 2) {
+initialPinchDistance = Math.hypot(
+e.touches[0].clientX - e.touches[1].clientX,
+e.touches[0].clientY - e.touches[1].clientY
+);
+}
+}, {passive: false});
+canvas.addEventListener('touchmove', (e) => {
+if (e.touches.length === 2 && initialPinchDistance) {
+e.preventDefault();
+const currentDistance = Math.hypot(
+e.touches[0].clientX - e.touches[1].clientX,
+e.touches[0].clientY - e.touches[1].clientY
+);
+const factor = currentDistance / initialPinchDistance;
+const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - canvas.getBoundingClientRect().left;
+this.timeScale.zoom(factor, centerX, this.chartWidth);
+initialPinchDistance = currentDistance;
+this.priceScaleDirty = true;
+this.requestRender();
+}
+}, {passive: false});
+window.addEventListener('resize', () => {
+this.calculateDimensions();
+});
+}
+updatePriceLineAndLabel() {
+if (this.candles.length === 0) return;
+const lastCandle = this.candles[this.candles.length - 1];
+const lastPrice = lastCandle.close;
+const isUp = lastCandle.close >= lastCandle.open;
+let lastPriceY = this.priceScale.priceToY(lastPrice, this.chartHeight);
+if (!isFinite(lastPriceY)) {
+lastPriceY = this.chartHeight / 2;
+}
+lastPriceY = Math.max(0, Math.min(this.chartHeight, lastPriceY));
+this.priceLine.style.top = `${lastPriceY}px`;
+this.priceLine.style.color = isUp ? CONFIG.colors.up : CONFIG.colors.down;
+this.lastPriceLabel.style.top = `${lastPriceY}px`;
+this.lastPriceLabel.querySelector('.price').textContent = lastPrice.toFixed(CONFIG.priceDecimals);
+// Calculate time remaining
+const now = Math.floor(Date.now() / 1000);
+const elapsed = now - lastCandle.time;
+const remaining = Math.max(0, timeframeSeconds - elapsed);
+const minutes = Math.floor(remaining / 60);
+const seconds = Math.floor(remaining % 60);
+this.lastPriceLabel.querySelector('.timer').textContent =
+`${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+this.lastPriceLabel.style.background = isUp ? CONFIG.colors.up : CONFIG.colors.down;
+}
+calculateMA() {
+this.ma = [];
+for (let i = 0; i < this.candles.length; i++) {
+if (i < CONFIG.maPeriod - 1) {
+this.ma.push(null);
+} else {
+let sum = 0;
+for (let j = 0; j < CONFIG.maPeriod; j++) {
+sum += this.candles[i - j].close;
+}
+this.ma.push(sum / CONFIG.maPeriod);
+}
+}
+this.requestRender();
+}
+requestRender() {
+if (this.renderPending) return;
+this.renderPending = true;
+requestAnimationFrame(() => {
+this.renderPending = false;
+this.render();
+});
+}
+stickToRight() {
+const totalWidth = this.candles.length * this.timeScale.barSpacing;
+this.timeScale.offset = this.chartWidth - totalWidth;
+}
+render() {
+const { chartWidth: w, chartHeight: h } = this;
+const visible = this.timeScale.getVisibleRange(w);
+if (this.priceScaleDirty) {
+this.priceScale.calculate(this.candles, visible.start, visible.end);
+this.priceScaleDirty = false;
+}
+this.mainRenderer.clear();
+this.mainRenderer.drawGrid(this.priceScale, this.timeScale, this.candles);
+this.mainRenderer.drawCandles(this.candles, this.timeScale, this.priceScale);
+this.mainRenderer.drawMovingAverage(this.ma, this.timeScale, this.priceScale, this.candles);
+if (this.crosshair.active) {
+this.mainRenderer.drawCrosshair(this.crosshair.x, this.crosshair.y);
+}
+this.priceRenderer.render(this.priceScale, h);
+this.timeRenderer.render(this.timeScale, this.candles, w);
+this.updatePriceLineAndLabel();
+}
+}
+
+// ======================
+// Global Functions
+// ======================
+function formatTime(seconds) {
+const mins = Math.floor(seconds / 60);
+const secs = seconds % 60;
+return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function selectAsset(asset) {
+currentAsset = asset;
+needsResetView = true;
+document.getElementById('top-symbol').textContent = currentAsset;
+// Reset fake generator with new asset
+chart.fakeGenerator = new FakeDataGenerator();
+chart.candles = chart.fakeGenerator.getCandles();
+chart.timeScale.setData(chart.candles);
+chart.calculateMA();
+chart.stickToRight();
+chart.requestRender();
+}
+
+function selectTimeframe(tf) {
+currentTimeframe = tf;
+needsResetView = true;
+timeframeSeconds = {
+"1m":60,"5m":300,"15m":900,"30m":1800,"1h":3600
+}[currentTimeframe];
+document.getElementById('top-timeframe').textContent = currentTimeframe;
+// Reset with new timeframe
+chart.fakeGenerator = new FakeDataGenerator();
+chart.candles = chart.fakeGenerator.getCandles();
+chart.timeScale.setData(chart.candles);
+chart.calculateMA();
+chart.stickToRight();
+chart.requestRender();
+}
+
+// ======================
+// Initialization
+// ======================
+const chart = new UltraChart();
+const modalManager = new ModalManager();
+
+// Update top bar
+document.getElementById('top-symbol').textContent = currentAsset;
+document.getElementById('top-timeframe').textContent = currentTimeframe;
+</script>
+</body>
+</html>
